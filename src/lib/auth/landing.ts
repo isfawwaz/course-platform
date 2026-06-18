@@ -24,7 +24,9 @@ export async function resolveLanding(
     .eq("user_id", user.id)
     .eq("status", "active");
 
-  if (error || !memberships || memberships.length === 0) return "/no-access";
+  // A transient DB/RLS failure must not masquerade as "no access".
+  if (error) throw error;
+  if (!memberships || memberships.length === 0) return "/no-access";
   if (memberships.length > 1) return "/select-org";
 
   const { data: org } = await supabase

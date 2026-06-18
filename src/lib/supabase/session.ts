@@ -55,7 +55,10 @@ export async function updateSession(request: NextRequest) {
   if (!user && !isPublicPath(request.nextUrl.pathname)) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
-    loginUrl.searchParams.set("redirect", request.nextUrl.pathname);
+    loginUrl.searchParams.set(
+      "redirect",
+      `${request.nextUrl.pathname}${request.nextUrl.search}`,
+    );
     const redirect = NextResponse.redirect(loginUrl);
     // Preserve any refreshed auth cookies on the redirect response.
     supabaseResponse.cookies

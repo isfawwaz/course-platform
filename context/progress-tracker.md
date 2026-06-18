@@ -33,10 +33,15 @@
     action). Verified unauth redirect.
   - [x] Step 6: /select-org (picker) + /no-access (with sign-out) under `(account)` layout; `logout`
     action wired. Verified both gated by proxy.
-  - [ ] Step 7: `[orgSlug]/layout.tsx` — resolve slug→org, require active membership, apply per-org
-    accent CSS vars, minimal authed landing + sign-out in nav.
-  - [ ] Step 8: Refine providers (auth/access-control/data) + protected admin placeholder; `sendInvite`
-    staff action (still pending — needed to exercise the invite email path).
+  - [x] Step 7: `[orgSlug]/layout.tsx` — org+membership resolved in one RLS query (`orgs_member_read`),
+    non-members bounce to landing; per-org accent via `src/lib/theme/accent.ts` (AA foreground,
+    8%/16% darken, 45% ring); header with org name/role/sign-out; minimal `[orgSlug]/page.tsx` dashboard.
+    Verified accent math (#E11D48) + unauth gate.
+  - [x] Step 8: Refine wired — `RefineProvider` (data via RLS browser client, router
+    `@refinedev/nextjs-router/app`, auth + access-control) mounted in staff-gated
+    `[orgSlug]/admin/layout.tsx`; placeholder admin page + working invite form; `sendInvite` action
+    (`src/lib/auth/invites.ts`, staff re-checked, service-role invite + invited membership). Resources
+    empty until 0.D. Verified build + unauth gate.
   - [ ] Step 9: Supabase dashboard config (Site URL, redirect allow-list, email templates for token_hash)
     + full manual smoke (signup → login → magic link → invite → accept).
 - [ ] 0.D Minimal content CRUD.

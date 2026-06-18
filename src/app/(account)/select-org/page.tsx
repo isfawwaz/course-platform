@@ -19,20 +19,22 @@ export default async function SelectOrgPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: memberships } = await supabase
+  const { data: memberships, error: membershipsError } = await supabase
     .from("memberships")
     .select("org_id")
     .eq("user_id", user.id)
     .eq("status", "active");
+  if (membershipsError) throw membershipsError;
 
   const ids = (memberships ?? []).map((m) => m.org_id);
   if (ids.length === 0) redirect("/no-access");
 
-  const { data: orgs } = await supabase
+  const { data: orgs, error: orgsError } = await supabase
     .from("orgs")
     .select("slug, name")
     .in("id", ids)
     .order("name");
+  if (orgsError) throw orgsError;
 
   if (!orgs || orgs.length === 0) redirect("/no-access");
   if (orgs.length === 1) redirect(`/${orgs[0].slug}`);

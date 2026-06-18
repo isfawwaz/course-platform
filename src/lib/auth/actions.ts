@@ -1,20 +1,13 @@
 "use server";
 
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 
 import { resolveLanding } from "./landing";
+import { getOrigin } from "./origin";
 
 export type AuthState = { error?: string; notice?: string };
-
-async function getOrigin(): Promise<string> {
-  const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host");
-  const proto = h.get("x-forwarded-proto") ?? "http";
-  return `${proto}://${host}`;
-}
 
 /** Email + password sign-in. Redirects to the resolved landing on success. */
 export async function login(
@@ -62,7 +55,9 @@ export async function signup(
     },
   });
   if (error) {
-    return { error: error.message };
+    // Keep provider details server-side; don't leak account-existence to the client.
+    console.error("signup failed", { code: error.code, status: error.status });
+    return { error: "We couldn't create your account. Please try again." };
   }
 
   // Email-confirmation enabled → no session yet.
@@ -89,13 +84,18 @@ export async function sendMagicLink(
 
   const supabase = await createClient();
   const origin = await getOrigin();
-  await supabase.auth.signInWithOtp({
+  const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {
       emailRedirectTo: `${origin}/auth/callback`,
       shouldCreateUser: false,
     },
   });
+  // Log real failures server-side, but keep the user-facing message identical
+  // (enumeration-safe) whether or not the email exists.
+  if (error) {
+    console.error("sendMagicLink failed", { code: error.code, status: error.status });
+  }
 
   return { notice: "If that email has an account, a sign-in link is on its way." };
 }

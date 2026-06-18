@@ -12,7 +12,7 @@
 
 ## Keys
 - **Publishable (recommended, client-safe):** `sb_publishable_fwDD5GndHv8JTQ-LiiYT6w_8J_iaM_I`
-- **Legacy anon (JWT, client-safe):** `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZqZm9penlid2Jzand6Y251YWFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NDM5NTIsImV4cCI6MjA5NzExOTk1Mn0.U4YyrDzt4-za-tRMBHpA14BI_dDOCDQrU_iL4BmzPu8`
+- **Legacy anon (JWT, client-safe):** `eyJhbGci...REDACTED` — copy the full anon key from the Supabase dashboard → Project Settings → API. (Client-safe by design, but not committed, to keep secret scanners quiet. Prefer the publishable key above.)
 - **service_role:** NOT included here. Copy it from the Supabase dashboard → Project Settings → API. **Server-only — never commit or expose to the client.**
 
 ## `.env.local` template (Next.js)

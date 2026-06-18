@@ -14,8 +14,17 @@ export function safeNext(next: string | null | undefined): string | null {
  * (Vercel / load balancers) where the request origin can be the internal host.
  */
 export function redirectBase(request: Request, origin: string): string {
-  const forwardedHost = request.headers.get("x-forwarded-host");
+  const forwardedHost = request.headers
+    .get("x-forwarded-host")
+    ?.split(",")[0]
+    ?.trim();
   const isLocal = process.env.NODE_ENV === "development";
-  if (!isLocal && forwardedHost) return `https://${forwardedHost}`;
+  if (!isLocal && forwardedHost) {
+    try {
+      return new URL(`https://${forwardedHost}`).origin;
+    } catch {
+      // Malformed forwarded host — fall back to the request origin.
+    }
+  }
   return origin;
 }
