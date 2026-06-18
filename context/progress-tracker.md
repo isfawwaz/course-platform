@@ -60,8 +60,11 @@
     caused "sign-in link incomplete". **Tier 2 (invite send + accept) pending** — needs service-role key
     in .env.local + invite email template → /auth/confirm?type=invite. Magic-link round-trip not yet
     smoke-tested (uses /auth/callback, default template).
-- [~] 0.D Minimal content CRUD — not built as UI; course/module/lesson + enrolment seeded via MCP for
-  the spike. Real Refine builder forms still to come.
+- [x] 0.D Minimal content CRUD — server-action builder (`src/lib/content/actions.ts`):
+  create course (admin home) + add module/lesson with ready-video attach + required toggle
+  (`/[orgSlug]/admin/courses/[courseId]`). Verified live (added Lesson #1 w/ video). Full
+  reorder/publish-guard = 1.A. KNOWN LIMITATION: `refresh_completion` fires only on progress writes,
+  so adding a required lesson after a completion is confirmed doesn't re-open it (Phase 1 lifecycle).
 - [x] 0.E Video pipeline (single rendition) — Uppy multipart upload routes, complete+enqueue (pg-boss),
   local worker (ffmpeg 720p HLS + poster), transcode callback, polling status badge. **Proven live.**
   (Fly.io worker deploy + full ladder = P1.)
