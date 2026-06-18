@@ -86,6 +86,9 @@ async function callback(payload: Record<string, unknown>) {
       "x-transcode-secret": CALLBACK_SECRET,
     },
     body: JSON.stringify(payload),
+    // Fail loudly if something redirects us (e.g. an auth gate) instead of silently
+    // following it and reporting false success.
+    redirect: "error",
   });
   if (!res.ok) throw new Error(`callback ${res.status}: ${await res.text()}`);
 }
