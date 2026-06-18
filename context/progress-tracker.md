@@ -3,9 +3,19 @@
 ## Current status
 
 - **Phase:** 0 — Skeleton spike.
-- **Last completed:** Epic 0.A + 0.B core scaffold (Next.js 16 + Supabase clients + design system),
-  build green, committed.
-- **Next:** Epic 0.C — auth (login + accept-invite), which also unlocks wiring the Refine provider tree.
+- **Last completed:** Epic 0.C merged (PR #1). **Epic 0.E proven end-to-end** on branch
+  `feat/video-pipeline-spike`: upload (Uppy multipart) → MinIO → pg-boss → worker ffmpeg 720p HLS +
+  poster → callback → `videos.ready` (verified row + MinIO artifacts on a real .mov).
+- **Next:** Epic 0.F — token playback proxy + hls.js player + clamped `/progress` (95% completes).
+
+### Spike gotchas (learned)
+- pg-boss needs the **Session pooler** (`aws-1-ap-southeast-1.pooler.supabase.com:5432`,
+  user `postgres.<ref>`); the direct `db.<ref>.supabase.co:5432` drops the worker's long-lived
+  connection. The pooler region prefix is **aws-1**, not aws-0.
+- The proxy session gate must exempt service/token-authed API routes (`/api/internal`,
+  `/api/playback`) — otherwise the worker callback gets 307'd to /login and fails silently.
+- Local everything: worker = `bun run worker` (needs ffmpeg), storage = reused `sms-dev-minio`
+  on `localhost:9000`, bucket `sms-local`.
 
 ## Checklist (mirrors `context/build-plan.md`)
 
