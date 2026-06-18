@@ -21,7 +21,7 @@ export async function createClient() {
         },
         setAll(cookiesToSet) {
           // Called from a Server Component (read-only cookies) — ignore.
-          // Session refresh happens in middleware (see lib/supabase/middleware.ts).
+          // Session refresh happens in the proxy (see lib/supabase/session.ts).
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
               cookieStore.set(name, value, options),

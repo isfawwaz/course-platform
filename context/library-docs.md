@@ -10,6 +10,11 @@ training knowledge. These libraries move fast; when unsure, check the live sourc
 - `cookies()` and `headers()` are **async** — `await` them. `src/lib/supabase/server.ts` already does.
 - Default to Server Components; add `"use client"` only when needed (state, effects, browser APIs,
   Refine providers). Route Handlers live in `route.ts` files; org-scoped pages under `src/app/[orgSlug]/`.
+- **Middleware was renamed to `proxy` in Next 16.** The file is `src/proxy.ts`, the exported function is
+  `proxy` (not `middleware`), runtime is **nodejs only (no edge)**. Config flags renamed too
+  (`skipMiddlewareUrlNormalize` → `skipProxyUrlNormalize`). Proxy is for *optimistic* checks + session
+  refresh — real authz stays in layouts/handlers. Ours: `src/proxy.ts` → `updateSession` in
+  `src/lib/supabase/session.ts`.
 
 ## Supabase
 
