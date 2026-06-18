@@ -51,7 +51,9 @@ export async function signup(
     password,
     options: {
       data: { full_name: fullName },
-      emailRedirectTo: `${origin}/auth/confirm`,
+      // Default Supabase "Confirm signup" email uses the PKCE code flow → /auth/callback.
+      // (Invites are admin-initiated/token_hash and use /auth/confirm instead.)
+      emailRedirectTo: `${origin}/auth/callback`,
     },
   });
   if (error) {

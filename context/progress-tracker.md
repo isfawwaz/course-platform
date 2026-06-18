@@ -42,8 +42,14 @@
     `[orgSlug]/admin/layout.tsx`; placeholder admin page + working invite form; `sendInvite` action
     (`src/lib/auth/invites.ts`, staff re-checked, service-role invite + invited membership). Resources
     empty until 0.D. Verified build + unauth gate.
-  - [ ] Step 9: Supabase dashboard config (Site URL, redirect allow-list, email templates for token_hash)
-    + full manual smoke (signup → login → magic link → invite → accept).
+  - [~] Step 9: live smoke. **Tier 1 PASSED** against the live backend (2026-06-18): signup → password
+    login (303 via resolveLanding) → /nail-art-academy 200 (org-layout active-membership authz) →
+    per-org rose theming (`#E11D48` primary) → staff-gated /admin with Refine mounted. Bootstrap run via
+    MCP (isfawwaz@gmail.com = platform admin + nail-art-academy owner). Fixed: signup confirm email now
+    targets `/auth/callback` (PKCE code) to match Supabase's default template — earlier `/auth/confirm`
+    caused "sign-in link incomplete". **Tier 2 (invite send + accept) pending** — needs service-role key
+    in .env.local + invite email template → /auth/confirm?type=invite. Magic-link round-trip not yet
+    smoke-tested (uses /auth/callback, default template).
 - [ ] 0.D Minimal content CRUD.
 - [ ] 0.E Video pipeline (single rendition) — uploads/sign, complete+enqueue, Fly worker, callback.
 - [ ] 0.F Playback + progress — token issuance, proxy, hls.js player, /progress.
