@@ -3,9 +3,20 @@
 ## Current status
 
 - **Phase:** 0 — Skeleton spike.
-- **Last completed:** Epic 0.A + 0.B core scaffold (Next.js 16 + Supabase clients + design system),
-  build green, committed.
-- **Next:** Epic 0.C — auth (login + accept-invite), which also unlocks wiring the Refine provider tree.
+- **Last completed:** **Phase 0 spike complete** (PR #2, branch `feat/video-pipeline-spike`):
+  0.D course builder + 0.E pipeline + 0.F playback/progress, proven end-to-end on a real .mov
+  (upload → transcode → token playback → progress → completion `pending_review`). 0.A–0.C merged in PR #1.
+- **Next:** merge PR #2, then Phase 1 — Fly.io worker + full ladder/captions (1.B), roster/grant UI (1.C),
+  assessments (1.E), completion → certificate + public verify (1.F). Loose ends: RLS isolation test, 0.C Tier-2 invite smoke.
+
+### Spike gotchas (learned)
+- pg-boss needs the **Session pooler** (`aws-1-ap-southeast-1.pooler.supabase.com:5432`,
+  user `postgres.<ref>`); the direct `db.<ref>.supabase.co:5432` drops the worker's long-lived
+  connection. The pooler region prefix is **aws-1**, not aws-0.
+- The proxy session gate must exempt service/token-authed API routes (`/api/internal`,
+  `/api/playback`) — otherwise the worker callback gets 307'd to /login and fails silently.
+- Local everything: worker = `bun run worker` (needs ffmpeg), storage = reused `sms-dev-minio`
+  on `localhost:9000`, bucket `sms-local`.
 
 ## Checklist (mirrors `context/build-plan.md`)
 
@@ -50,9 +61,23 @@
     caused "sign-in link incomplete". **Tier 2 (invite send + accept) pending** — needs service-role key
     in .env.local + invite email template → /auth/confirm?type=invite. Magic-link round-trip not yet
     smoke-tested (uses /auth/callback, default template).
-- [ ] 0.D Minimal content CRUD.
-- [ ] 0.E Video pipeline (single rendition) — uploads/sign, complete+enqueue, Fly worker, callback.
-- [ ] 0.F Playback + progress — token issuance, proxy, hls.js player, /progress.
+- [x] 0.D Minimal content CRUD — server-action builder (`src/lib/content/actions.ts`):
+  create course (admin home) + add module/lesson with ready-video attach + required toggle
+  (`/[orgSlug]/admin/courses/[courseId]`). Verified live (added Lesson #1 w/ video). Full
+  reorder/publish-guard = 1.A. KNOWN LIMITATION: `refresh_completion` fires only on progress writes,
+  so adding a required lesson after a completion is confirmed doesn't re-open it (Phase 1 lifecycle).
+- [x] 0.E Video pipeline (single rendition) — Uppy multipart upload routes, complete+enqueue (pg-boss),
+  local worker (ffmpeg 720p HLS + poster), transcode callback, polling status badge. **Proven live.**
+  (Fly.io worker deploy + full ladder = P1.)
+- [x] 0.F Playback + progress — playback-token route, token proxy (`/api/playback`), hls.js player,
+  clamped `/progress` → 95% completes. **Proven live.**
+
+**Phase 0 spike DoD MET (2026-06-18):** a seeded student watched a real transcoded lesson through the
+token proxy; clamped progress persisted and completed; the completion auto-flipped to `pending_review`;
+no cross-org read. Branch `feat/video-pipeline-spike` (commits through e63de01).
+
+Remaining Phase 0 loose ends (low priority): 0.A Refine wiring is done; 0.C Tier-2 invite smoke; 0.D
+real content builder UI; RLS isolation CI test.
 
 ### Phase 1 / 2
 - [ ] Not started — see `context/build-plan.md`.

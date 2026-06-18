@@ -13,7 +13,17 @@ import type { Database } from "./database.types";
  */
 
 // Paths reachable without a session. Everything else requires an authenticated user.
-const PUBLIC_PREFIXES = ["/login", "/signup", "/accept-invite", "/auth", "/verify"];
+// `/api/internal` (service-token) and `/api/playback` (playback token) do their own auth,
+// so the session gate must not redirect them to /login.
+const PUBLIC_PREFIXES = [
+  "/login",
+  "/signup",
+  "/accept-invite",
+  "/auth",
+  "/verify",
+  "/api/internal",
+  "/api/playback",
+];
 
 function isPublicPath(pathname: string): boolean {
   if (pathname === "/") return true;
