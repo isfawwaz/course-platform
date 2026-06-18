@@ -25,3 +25,12 @@ export function videoMasterKey(orgId: string, videoId: string): string {
 export function videoPosterKey(orgId: string, videoId: string): string {
   return `${base(orgId, videoId)}/thumbnails/poster.jpg`;
 }
+
+/** Parse the org id + video id back out of a media key, validating the shape. */
+export function parseMediaKey(
+  key: string,
+): { orgId: string; videoId: string } | null {
+  const m =
+    /^org\/([0-9a-f-]{36})\/videos\/([0-9a-f-]{36})\//.exec(key);
+  return m ? { orgId: m[1], videoId: m[2] } : null;
+}
