@@ -33,12 +33,13 @@ export async function GET(
   } catch {
     return new Response("not found", { status: 404 });
   }
-  const bytes = await obj.Body!.transformToByteArray();
+  if (!obj.Body) return new Response("not found", { status: 404 });
   const last = segments[segments.length - 1] ?? "";
 
+  // Manifests must be buffered to rewrite child URLs with the token.
   if (last.endsWith(".m3u8")) {
     const rewritten = new TextDecoder()
-      .decode(bytes)
+      .decode(await obj.Body.transformToByteArray())
       .split("\n")
       .map((line) => {
         const t = line.trim();
@@ -54,7 +55,8 @@ export async function GET(
     });
   }
 
-  return new Response(new Uint8Array(bytes), {
+  // Segments stream straight through — no full-file buffering.
+  return new Response(obj.Body.transformToWebStream(), {
     headers: {
       "content-type": last.endsWith(".ts")
         ? "video/mp2t"

@@ -3,10 +3,11 @@
 ## Current status
 
 - **Phase:** 0 — Skeleton spike.
-- **Last completed:** Epic 0.C merged (PR #1). **Epic 0.E proven end-to-end** on branch
-  `feat/video-pipeline-spike`: upload (Uppy multipart) → MinIO → pg-boss → worker ffmpeg 720p HLS +
-  poster → callback → `videos.ready` (verified row + MinIO artifacts on a real .mov).
-- **Next:** Epic 0.F — token playback proxy + hls.js player + clamped `/progress` (95% completes).
+- **Last completed:** **Phase 0 spike complete** (PR #2, branch `feat/video-pipeline-spike`):
+  0.D course builder + 0.E pipeline + 0.F playback/progress, proven end-to-end on a real .mov
+  (upload → transcode → token playback → progress → completion `pending_review`). 0.A–0.C merged in PR #1.
+- **Next:** merge PR #2, then Phase 1 — Fly.io worker + full ladder/captions (1.B), roster/grant UI (1.C),
+  assessments (1.E), completion → certificate + public verify (1.F). Loose ends: RLS isolation test, 0.C Tier-2 invite smoke.
 
 ### Spike gotchas (learned)
 - pg-boss needs the **Session pooler** (`aws-1-ap-southeast-1.pooler.supabase.com:5432`,

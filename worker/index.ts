@@ -25,7 +25,11 @@ import {
 import { mediaBucket, s3 } from "../src/lib/storage/s3";
 
 const APP_URL = process.env.APP_INTERNAL_URL ?? "http://localhost:3000";
-const CALLBACK_SECRET = process.env.TRANSCODE_CALLBACK_SECRET ?? "";
+if (!process.env.TRANSCODE_CALLBACK_SECRET) {
+  console.error("TRANSCODE_CALLBACK_SECRET is not set — refusing to start.");
+  process.exit(1);
+}
+const CALLBACK_SECRET: string = process.env.TRANSCODE_CALLBACK_SECRET;
 const bucket = mediaBucket();
 
 function run(cmd: string, args: string[]): Promise<void> {
@@ -107,7 +111,8 @@ async function transcode(job: TranscodeJob) {
     const obj = await s3().send(
       new GetObjectCommand({ Bucket: bucket, Key: sourceKey }),
     );
-    await writeFile(src, await obj.Body!.transformToByteArray());
+    if (!obj.Body) throw new Error("source object has no body");
+    await writeFile(src, await obj.Body.transformToByteArray());
 
     // 2. probe duration
     const durationSec = await probeDuration(src);
@@ -128,8 +133,9 @@ async function transcode(job: TranscodeJob) {
     const master = join(scratch, "hls", "master.m3u8");
     await writeFile(
       master,
+      // Aspect ratio is preserved (scale=-2:720), so width varies — declare bandwidth only.
       "#EXTM3U\n#EXT-X-VERSION:3\n" +
-        "#EXT-X-STREAM-INF:BANDWIDTH=3000000,RESOLUTION=1280x720\n" +
+        "#EXT-X-STREAM-INF:BANDWIDTH=3000000\n" +
         "720p/index.m3u8\n",
     );
     const poster = join(scratch, "poster.jpg");

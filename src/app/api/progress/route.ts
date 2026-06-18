@@ -9,7 +9,17 @@ const COMPLETE_THRESHOLD = 95; // percent watched (RFC-001 D6)
  * than wall-clock since the last write, and never exceeds the video duration.
  */
 export async function POST(req: Request) {
-  const { lessonId, lastPositionSec, watchedDeltaSec } = await req.json();
+  let body: {
+    lessonId?: string;
+    lastPositionSec?: number;
+    watchedDeltaSec?: number;
+  };
+  try {
+    body = await req.json();
+  } catch {
+    return Response.json({ error: "invalid JSON" }, { status: 400 });
+  }
+  const { lessonId, lastPositionSec, watchedDeltaSec } = body;
   if (!lessonId) return Response.json({ error: "lessonId required" }, { status: 422 });
 
   const supabase = await createClient();
@@ -77,10 +87,11 @@ export async function POST(req: Request) {
       : null,
   };
 
-  if (prev) {
-    await supabase.from("lesson_progress").update(row).eq("id", prev.id);
-  } else {
-    await supabase.from("lesson_progress").insert(row);
+  const { error: writeError } = prev
+    ? await supabase.from("lesson_progress").update(row).eq("id", prev.id)
+    : await supabase.from("lesson_progress").insert(row);
+  if (writeError) {
+    return Response.json({ error: writeError.message }, { status: 500 });
   }
 
   return Response.json({ percent, completed, tracked: true });

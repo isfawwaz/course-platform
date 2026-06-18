@@ -4,7 +4,7 @@ import AwsS3 from "@uppy/aws-s3";
 import Uppy from "@uppy/core";
 import Dashboard from "@uppy/react/dashboard";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import "@uppy/core/css/style.min.css";
 import "@uppy/dashboard/css/style.min.css";
@@ -48,7 +48,13 @@ export function VideoUploader({ orgSlug }: { orgSlug: string }) {
     }),
   );
 
-  uppy.once("complete", () => router.refresh());
+  useEffect(() => {
+    const onComplete = () => router.refresh();
+    uppy.on("complete", onComplete);
+    return () => {
+      uppy.off("complete", onComplete);
+    };
+  }, [uppy, router]);
 
   return (
     <Dashboard

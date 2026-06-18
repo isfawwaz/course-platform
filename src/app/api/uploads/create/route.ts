@@ -41,13 +41,20 @@ export async function POST(req: Request) {
     return Response.json({ error: insertError.message }, { status: 500 });
   }
 
-  const out = await s3().send(
-    new CreateMultipartUploadCommand({
-      Bucket: bucket,
-      Key: key,
-      ContentType: contentType || "application/octet-stream",
-    }),
-  );
+  let out;
+  try {
+    out = await s3().send(
+      new CreateMultipartUploadCommand({
+        Bucket: bucket,
+        Key: key,
+        ContentType: contentType || "application/octet-stream",
+      }),
+    );
+  } catch {
+    // Roll back the orphaned `uploading` row if storage init fails.
+    await supabase.from("videos").delete().eq("id", videoId);
+    return Response.json({ error: "could not start upload" }, { status: 502 });
+  }
 
   return Response.json({ uploadId: out.UploadId, key });
 }

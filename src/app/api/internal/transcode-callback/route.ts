@@ -29,8 +29,15 @@ export async function POST(req: Request) {
       : { status: "failed", error: body.error ?? "transcode failed" };
 
   const admin = createServiceClient();
-  const { error } = await admin.from("videos").update(update).eq("id", videoId);
+  const { data, error } = await admin
+    .from("videos")
+    .update(update)
+    .eq("id", videoId)
+    .select("id");
   if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (!data || data.length === 0) {
+    return Response.json({ error: "video not found" }, { status: 404 });
+  }
 
   return Response.json({ ok: true });
 }

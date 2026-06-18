@@ -58,29 +58,33 @@ export function LessonPlayer({ lessonId }: { lessonId: string }) {
     };
 
     void (async () => {
-      const res = await fetch(`/api/lessons/${lessonId}/playback`);
-      if (cancelled) return;
-      if (!res.ok) {
-        setStatus("error");
-        return;
+      try {
+        const res = await fetch(`/api/lessons/${lessonId}/playback`);
+        if (cancelled) return;
+        if (!res.ok) {
+          setStatus("error");
+          return;
+        }
+        const { src } = await res.json();
+        if (Hls.isSupported()) {
+          hls = new Hls();
+          hls.loadSource(src);
+          hls.attachMedia(video);
+        } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+          video.src = src;
+        } else {
+          setStatus("error");
+          return;
+        }
+        setStatus("ready");
+        // Baseline ping establishes the progress row's timestamp.
+        report(0, 0);
+        video.addEventListener("timeupdate", onTimeUpdate);
+        video.addEventListener("ended", flush);
+        video.addEventListener("pause", flush);
+      } catch {
+        if (!cancelled) setStatus("error");
       }
-      const { src } = await res.json();
-      if (Hls.isSupported()) {
-        hls = new Hls();
-        hls.loadSource(src);
-        hls.attachMedia(video);
-      } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-        video.src = src;
-      } else {
-        setStatus("error");
-        return;
-      }
-      setStatus("ready");
-      // Baseline ping establishes the progress row's timestamp.
-      report(0, 0);
-      video.addEventListener("timeupdate", onTimeUpdate);
-      video.addEventListener("ended", flush);
-      video.addEventListener("pause", flush);
     })();
 
     return () => {

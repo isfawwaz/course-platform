@@ -44,6 +44,21 @@ async function courseInOrg(
   return Boolean(data);
 }
 
+/** Verify a module belongs to the given course. */
+async function moduleInCourse(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  moduleId: string,
+  courseId: string,
+): Promise<boolean> {
+  const { data } = await supabase
+    .from("modules")
+    .select("id")
+    .eq("id", moduleId)
+    .eq("course_id", courseId)
+    .maybeSingle();
+  return Boolean(data);
+}
+
 export async function createCourse(
   _prev: ContentState,
   formData: FormData,
@@ -119,6 +134,9 @@ export async function createLesson(
   if ("error" in ctx) return ctx;
   if (!(await courseInOrg(supabase, courseId, ctx.orgId))) {
     return { error: "Course not found." };
+  }
+  if (!(await moduleInCourse(supabase, moduleId, courseId))) {
+    return { error: "Module not found in this course." };
   }
 
   const { count } = await supabase

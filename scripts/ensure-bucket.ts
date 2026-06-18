@@ -12,7 +12,11 @@ const client = s3();
 try {
   await client.send(new HeadBucketCommand({ Bucket: bucket }));
   console.log(`✓ bucket "${bucket}" already exists`);
-} catch {
+} catch (err) {
+  // Only "missing bucket" (404) should trigger creation — surface auth/network/etc.
+  const status = (err as { $metadata?: { httpStatusCode?: number } })?.$metadata
+    ?.httpStatusCode;
+  if (status !== 404) throw err;
   await client.send(new CreateBucketCommand({ Bucket: bucket }));
   console.log(`✓ created bucket "${bucket}"`);
 }

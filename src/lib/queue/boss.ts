@@ -26,11 +26,18 @@ export function getBoss(): Promise<PgBoss> {
     throw new Error("DATABASE_URL is not set — required for pg-boss.");
   }
   const boss = new PgBoss({ connectionString, schema: "pgboss" });
-  bossPromise = boss.start().then(async () => {
-    // Idempotent: the queue may already exist from a previous run.
-    await boss.createQueue(TRANSCODE_QUEUE).catch(() => {});
-    return boss;
-  });
+  bossPromise = boss
+    .start()
+    .then(async () => {
+      // createQueue is idempotent in pg-boss v12 (no-op if it already exists).
+      await boss.createQueue(TRANSCODE_QUEUE);
+      return boss;
+    })
+    .catch((err) => {
+      // Don't cache a rejected promise — let the next call retry initialization.
+      bossPromise = null;
+      throw err;
+    });
   return bossPromise;
 }
 

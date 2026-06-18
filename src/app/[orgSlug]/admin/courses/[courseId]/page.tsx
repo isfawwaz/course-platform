@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { resolveOrgIdBySlug } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
 
 import { LessonCreateForm } from "./lesson-create-form";
@@ -15,10 +16,14 @@ export default async function CourseBuilderPage({
   const { orgSlug, courseId } = await params;
   const supabase = await createClient();
 
+  const orgId = await resolveOrgIdBySlug(supabase, orgSlug);
+  if (!orgId) notFound();
+
   const { data: course } = await supabase
     .from("courses")
     .select("id, title, status, org_id")
     .eq("id", courseId)
+    .eq("org_id", orgId)
     .maybeSingle();
   if (!course) notFound();
 

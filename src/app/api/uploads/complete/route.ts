@@ -55,10 +55,17 @@ export async function POST(req: Request) {
     // size is best-effort
   }
 
-  await supabase
+  const { data: updated, error: updateError } = await supabase
     .from("videos")
     .update({ status: "processing", size_bytes: sizeBytes })
-    .eq("id", parsed.videoId);
+    .eq("id", parsed.videoId)
+    .select("id");
+  if (updateError || !updated?.length) {
+    return Response.json(
+      { error: updateError?.message ?? "video not found" },
+      { status: 500 },
+    );
+  }
 
   await enqueueTranscode({
     videoId: parsed.videoId,
