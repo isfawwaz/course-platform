@@ -1,0 +1,18 @@
+/**
+ * Ensure the media bucket exists in the configured S3/MinIO backend.
+ * Run with: bun run scripts/ensure-bucket.ts   (bun auto-loads .env.local)
+ */
+import { CreateBucketCommand, HeadBucketCommand } from "@aws-sdk/client-s3";
+
+import { mediaBucket, s3 } from "../src/lib/storage/s3";
+
+const bucket = mediaBucket();
+const client = s3();
+
+try {
+  await client.send(new HeadBucketCommand({ Bucket: bucket }));
+  console.log(`✓ bucket "${bucket}" already exists`);
+} catch {
+  await client.send(new CreateBucketCommand({ Bucket: bucket }));
+  console.log(`✓ created bucket "${bucket}"`);
+}
