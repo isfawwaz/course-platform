@@ -60,9 +60,20 @@
     caused "sign-in link incomplete". **Tier 2 (invite send + accept) pending** — needs service-role key
     in .env.local + invite email template → /auth/confirm?type=invite. Magic-link round-trip not yet
     smoke-tested (uses /auth/callback, default template).
-- [ ] 0.D Minimal content CRUD.
-- [ ] 0.E Video pipeline (single rendition) — uploads/sign, complete+enqueue, Fly worker, callback.
-- [ ] 0.F Playback + progress — token issuance, proxy, hls.js player, /progress.
+- [~] 0.D Minimal content CRUD — not built as UI; course/module/lesson + enrolment seeded via MCP for
+  the spike. Real Refine builder forms still to come.
+- [x] 0.E Video pipeline (single rendition) — Uppy multipart upload routes, complete+enqueue (pg-boss),
+  local worker (ffmpeg 720p HLS + poster), transcode callback, polling status badge. **Proven live.**
+  (Fly.io worker deploy + full ladder = P1.)
+- [x] 0.F Playback + progress — playback-token route, token proxy (`/api/playback`), hls.js player,
+  clamped `/progress` → 95% completes. **Proven live.**
+
+**Phase 0 spike DoD MET (2026-06-18):** a seeded student watched a real transcoded lesson through the
+token proxy; clamped progress persisted and completed; the completion auto-flipped to `pending_review`;
+no cross-org read. Branch `feat/video-pipeline-spike` (commits through e63de01).
+
+Remaining Phase 0 loose ends (low priority): 0.A Refine wiring is done; 0.C Tier-2 invite smoke; 0.D
+real content builder UI; RLS isolation CI test.
 
 ### Phase 1 / 2
 - [ ] Not started — see `context/build-plan.md`.
