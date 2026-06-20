@@ -115,11 +115,14 @@ export async function processCertificate(job: CertificateJob): Promise<void> {
   // Notify the student their certificate is ready (RFC-003 §9). Best-effort: issuance has
   // already succeeded above, so a missing email or provider failure must never fail the job.
   try {
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("email")
       .eq("id", cert.user_id)
       .maybeSingle();
+    if (profileError) {
+      throw new Error(`load profile email: ${profileError.message}`);
+    }
     if (profile?.email) {
       const sent = await sendEmail(
         certificateReadyEmail({
@@ -133,7 +136,7 @@ export async function processCertificate(job: CertificateJob): Promise<void> {
       );
       console.log(
         `[certificate] ${certificateId} ready → ${key} (${pdf.length} bytes); ` +
-          `email ${sent ? "sent" : "skipped"} → ${profile.email}`,
+          `email ${sent ? "sent" : "skipped"}`,
       );
     } else {
       console.warn(

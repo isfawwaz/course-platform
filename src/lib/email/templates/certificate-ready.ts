@@ -38,6 +38,10 @@ const COPY: Record<"id" | "en", Copy> = {
   },
 };
 
+/**
+ * Build the localized "certificate ready" email (subject + HTML + plain text). User-derived
+ * values are HTML-escaped in the markup; the verify URL is the primary CTA.
+ */
 export function certificateReadyEmail(p: CertificateReadyParams): EmailMessage {
   const t = COPY[p.locale];
   const subject = t.subject(p.courseTitle);

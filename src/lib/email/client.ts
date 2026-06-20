@@ -34,9 +34,8 @@ export async function sendEmail(msg: EmailMessage): Promise<boolean> {
   const from = process.env.EMAIL_FROM;
   const api = resend();
   if (!api || !from) {
-    console.warn(
-      `[email] skipped "${msg.subject}" → ${msg.to}: RESEND_API_KEY/EMAIL_FROM not set`,
-    );
+    // Don't log recipient/subject — avoid leaking PII/user content into logs.
+    console.warn("[email] skipped: RESEND_API_KEY/EMAIL_FROM not set");
     return false;
   }
   const { error } = await api.emails.send({
