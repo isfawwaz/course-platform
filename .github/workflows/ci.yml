@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Cancel superseded runs on the same ref.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static:
+    name: Typecheck & lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.11
+      - run: bun install --frozen-lockfile
+      - run: bun run typecheck
+      - run: bun run lint
+
+  rls:
+    name: RLS isolation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.11
+      - run: bun install --frozen-lockfile
+      # The supabase CLI ships as a pinned devDependency (node_modules/.bin/supabase);
+      # `db:test:up` boots a slim local stack (db + auth) and applies supabase/migrations.
+      - name: Start Supabase
+        run: bun run db:test:up
+      - name: Run RLS isolation matrix
+        run: bun run test
+      - name: Stop Supabase
+        if: always()
+        run: bun run db:test:down
