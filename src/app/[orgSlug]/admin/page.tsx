@@ -47,6 +47,14 @@ export default async function AdminHomePage({
         <p className="mt-2 text-sm text-muted-foreground">
           Build courses, upload videos, and invite people.
         </p>
+        <div className="mt-3 flex gap-4 text-sm font-medium text-primary">
+          <Link href={`/${orgSlug}/admin/completions`} className="hover:underline">
+            Review completions →
+          </Link>
+          <Link href={`/${orgSlug}/admin/certificates`} className="hover:underline">
+            Certificates →
+          </Link>
+        </div>
       </div>
 
       <section className="space-y-4">

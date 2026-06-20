@@ -9,12 +9,20 @@ import { PgBoss } from "pg-boss";
  * Supabase transaction pooler.
  */
 export const TRANSCODE_QUEUE = "transcode";
+export const CERTIFICATE_QUEUE = "certificate";
 
 export type TranscodeJob = {
   videoId: string;
   orgId: string;
   sourceKey: string;
 };
+
+/** Certificate issuance job (RFC-003 §6). Keyed by certificateId for idempotent re-render. */
+export type CertificateJob = {
+  certificateId: string;
+};
+
+const QUEUES = [TRANSCODE_QUEUE, CERTIFICATE_QUEUE];
 
 let bossPromise: Promise<PgBoss> | null = null;
 
@@ -30,7 +38,7 @@ export function getBoss(): Promise<PgBoss> {
     .start()
     .then(async () => {
       // createQueue is idempotent in pg-boss v12 (no-op if it already exists).
-      await boss.createQueue(TRANSCODE_QUEUE);
+      for (const q of QUEUES) await boss.createQueue(q);
       return boss;
     })
     .catch((err) => {
@@ -45,4 +53,10 @@ export function getBoss(): Promise<PgBoss> {
 export async function enqueueTranscode(job: TranscodeJob): Promise<void> {
   const boss = await getBoss();
   await boss.send(TRANSCODE_QUEUE, job);
+}
+
+/** Enqueue a certificate-issue job (called from the confirm-completion handler). */
+export async function enqueueCertificate(job: CertificateJob): Promise<void> {
+  const boss = await getBoss();
+  await boss.send(CERTIFICATE_QUEUE, job);
 }

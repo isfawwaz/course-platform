@@ -13,10 +13,13 @@ import { join } from "node:path";
 import { GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 
 import {
+  CERTIFICATE_QUEUE,
   getBoss,
   TRANSCODE_QUEUE,
+  type CertificateJob,
   type TranscodeJob,
 } from "../src/lib/queue/boss";
+import { processCertificate } from "./certificate";
 import {
   videoHlsPrefix,
   videoMasterKey,
@@ -178,4 +181,7 @@ const boss = await getBoss();
 await boss.work<TranscodeJob>(TRANSCODE_QUEUE, async (jobs) => {
   for (const job of jobs) await transcode(job.data);
 });
-console.log(`[worker] listening on "${TRANSCODE_QUEUE}"`);
+await boss.work<CertificateJob>(CERTIFICATE_QUEUE, async (jobs) => {
+  for (const job of jobs) await processCertificate(job.data);
+});
+console.log(`[worker] listening on "${TRANSCODE_QUEUE}", "${CERTIFICATE_QUEUE}"`);

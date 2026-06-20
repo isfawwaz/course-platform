@@ -80,7 +80,33 @@ Remaining Phase 0 loose ends (low priority): 0.A Refine wiring is done; 0.C Tier
 real content builder UI; RLS isolation CI test.
 
 ### Phase 1 / 2
-- [ ] Not started — see `context/build-plan.md`.
+- [x] **1.F Completion → certificate + public verify** — built on `feat/certificates`, build/lint/tsc
+  green. Migration `0010` applied live + types regenerated. PR #3 review-complete (all 12 CodeRabbit
+  findings addressed). **Live issuance smoke PASSED (2026-06-20):** confirmed completion → worker rendered
+  PDF (7117 B) → Supabase Storage `certificates` bucket → `pdf_key` stamped → service-signed download
+  returned a valid `%PDF-` → `public.verify_certificate` RPC + public `/verify/<code>` page showed
+  "Certificate verified" (cert `CP-FF8E-BCG1`, course "Nail Art Basics", isfawwaz). not-found + malformed
+  (`%`→HTTP 400, no 500) cases also verified.
+  - [x] Risk-first spike: `@react-pdf/renderer` + `qrcode` render a valid PDF under the bun worker.
+  - [x] Crockford code gen (`CP-XXXX-XXXX`) + look-alike-tolerant normalizer (`src/lib/certificates/code.ts`).
+  - [x] Confirm/reject handlers (`/api/completions/:id/{confirm,reject}`) — staff re-checked, RLS client;
+    confirm transitions `pending_review→confirmed`, issues cert row (snapshots+code, one-per-completion),
+    enqueues `certificate.issue`. Issuance uses the RLS client (staff policies cover it) — service role
+    reserved for the worker.
+  - [x] Admin pending-review queue (`[orgSlug]/admin/completions`) + confirm/reject actions.
+  - [x] Certificate worker (`worker/certificate.ts` + `certificate-template.tsx`): renders branded PDF
+    (id/en) + QR → **Supabase Storage** `certificates` bucket (`org/{orgId}/certificates/{id}.pdf`) via a
+    worker-local service client (NOT the `server-only` app client), sets `pdf_key`. Idempotent (upsert).
+    Email stubbed. New pg-boss `certificate` queue in `src/lib/queue/boss.ts`.
+  - [x] Signed download (`/api/certificates/:id/download` → service-minted signed URL after RLS check) +
+    student "My certificates" (`[orgSlug]/certificates`).
+  - [x] Public `/verify/[code]` (typed RPC) + revoke (`/api/certificates/:id/revoke` + admin certs list).
+  - [x] **Migration `0010_public_verify_wrapper.sql` APPLIED LIVE:** `public.verify_certificate` delegates
+    to the `app.` one (the `app` schema is unreachable — PostgREST exposes only public/graphql_public).
+    Verified anon-reachable (HTTP 200). `database.types.ts` regenerated (now has the `verify_certificate`
+    Function).
+  - Font note: template uses built-in Helvetica (Latin-1, fine for Indonesian); embed Inter/Noto when the
+    branding design lands (RFC-003 §13, still open). Cert branding + owner signature = open design input.
 
 ## Decisions made during build
 
