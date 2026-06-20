@@ -20,10 +20,21 @@ import type { CertificateJob } from "../src/lib/queue/boss";
 
 import { CertificateDocument } from "./certificate-template";
 
-const PUBLIC_URL =
-  process.env.APP_PUBLIC_URL ??
-  process.env.NEXT_PUBLIC_APP_URL ??
-  "http://localhost:3000";
+/**
+ * Public origin printed on the cert + encoded in its QR. A wrong value bakes a broken verify
+ * link into an immutable PDF, so in production we refuse to fall back to localhost.
+ */
+function publicUrl(): string {
+  const url = process.env.APP_PUBLIC_URL ?? process.env.NEXT_PUBLIC_APP_URL;
+  if (url) return url;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "APP_PUBLIC_URL (or NEXT_PUBLIC_APP_URL) must be set in production — " +
+        "certificate verify URLs would otherwise be wrong.",
+    );
+  }
+  return "http://localhost:3000";
+}
 
 let adminClient: ReturnType<typeof createClient<Database>> | null = null;
 
@@ -62,14 +73,16 @@ export async function processCertificate(job: CertificateJob): Promise<void> {
   }
 
   // Org locale drives the certificate language; default to Indonesian (platform default).
-  const { data: org } = await supabase
+  // A read failure must not silently emit a wrong-language certificate.
+  const { data: org, error: orgError } = await supabase
     .from("orgs")
     .select("locale")
     .eq("id", cert.org_id)
     .maybeSingle();
+  if (orgError) throw new Error(`load org locale: ${orgError.message}`);
   const locale = org?.locale === "en" ? "en" : "id";
 
-  const verifyUrl = `${PUBLIC_URL}/verify/${cert.code}`;
+  const verifyUrl = `${publicUrl()}/verify/${cert.code}`;
   const qrDataUrl = await QRCode.toDataURL(verifyUrl, { margin: 1, width: 256 });
 
   const pdf = await renderToBuffer(

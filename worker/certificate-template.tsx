@@ -82,7 +82,8 @@ export function CertificateDocument(props: CertificateTemplateProps) {
   const t = COPY[props.locale] ?? COPY.en;
   const issued = new Intl.DateTimeFormat(
     props.locale === "id" ? "id-ID" : "en-GB",
-    { day: "numeric", month: "long", year: "numeric" },
+    // Pin the timezone so a re-render on any host prints the same issue date (idempotency).
+    { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" },
   ).format(new Date(props.issuedAt));
 
   return (

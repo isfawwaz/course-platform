@@ -39,8 +39,9 @@ export async function issueCertificate(
   const existing = await findByCompletion(supabase, completion.id);
   if (existing) return { ...existing, created: false };
 
-  // Snapshot sources (all RLS-readable by co-org staff).
-  const [{ data: profile }, { data: course }, { data: org }] = await Promise.all([
+  // Snapshot sources (all RLS-readable by co-org staff). A *query* error must fail
+  // issuance — never silently fall through to degraded snapshot data.
+  const [profileRes, courseRes, orgRes] = await Promise.all([
     supabase
       .from("profiles")
       .select("full_name, email")
@@ -53,11 +54,18 @@ export async function issueCertificate(
       .maybeSingle(),
     supabase.from("orgs").select("name").eq("id", completion.org_id).maybeSingle(),
   ]);
-  if (!course || !org) {
+  for (const res of [profileRes, courseRes, orgRes]) {
+    if (res.error) {
+      throw new Error(`certificate snapshot read failed: ${res.error.message}`);
+    }
+  }
+  if (!courseRes.data || !orgRes.data) {
     throw new Error("certificate snapshot sources missing (course/org)");
   }
   const studentName =
-    profile?.full_name?.trim() || profile?.email || "Student";
+    profileRes.data?.full_name?.trim() || profileRes.data?.email || "Student";
+  const course = courseRes.data;
+  const org = orgRes.data;
 
   // Insert with code-collision retry. The unique(completion_id) constraint is the backstop
   // against a concurrent double-confirm; unique(code) triggers a fresh-code retry.
@@ -97,10 +105,13 @@ async function findByCompletion(
   supabase: SupabaseClient<Database>,
   completionId: string,
 ): Promise<{ certificateId: string; code: string } | null> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("certificates")
     .select("id, code")
     .eq("completion_id", completionId)
     .maybeSingle();
+  if (error) {
+    throw new Error(`certificate lookup by completion failed: ${error.message}`);
+  }
   return data ? { certificateId: data.id, code: data.code } : null;
 }

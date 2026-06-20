@@ -17,19 +17,42 @@ export default async function VerifyPage({
   params: Promise<{ code: string }>;
 }) {
   const { code: raw } = await params;
-  const code = normalizeCertificateCode(decodeURIComponent(raw));
+  // decodeURIComponent throws URIError on malformed input (e.g. a lone `%`); on a public
+  // endpoint that would surface as a 500. Fall back to the raw value so normalization can
+  // reject it gracefully.
+  let decoded = raw;
+  try {
+    decoded = decodeURIComponent(raw);
+  } catch {
+    decoded = raw;
+  }
+  const code = normalizeCertificateCode(decoded);
 
   let result: VerifyResult | null = null;
+  let errored = false;
   if (code) {
     const supabase = await createClient();
-    const { data } = await supabase.rpc("verify_certificate", { p_code: code });
-    result = data && data.length > 0 ? data[0] : null;
+    const { data, error } = await supabase.rpc("verify_certificate", {
+      p_code: code,
+    });
+    if (error) {
+      // Operational failure (DB/RPC) — don't present it as "not found".
+      errored = true;
+    } else {
+      result = data && data.length > 0 ? data[0] : null;
+    }
   }
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col justify-center px-6 py-16">
       <div className="rounded-xl border border-border bg-card p-8 shadow-sm">
-        {!result ? (
+        {errored ? (
+          <Status
+            tone="danger"
+            heading="Couldn't verify right now"
+            body="We hit a problem checking this certificate. Please try again in a moment."
+          />
+        ) : !result ? (
           <Status
             tone="danger"
             heading="Certificate not found"

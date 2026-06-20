@@ -12,9 +12,11 @@ import { Button } from "@/components/ui/button";
 export function RevokeButton({ certificateId }: { certificateId: string }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function revoke() {
+    if (busy || pending) return;
     setError(null);
     const reason = window.prompt(
       "Revoke this certificate? Optionally note a reason:",
@@ -22,23 +24,35 @@ export function RevokeButton({ certificateId }: { certificateId: string }) {
     );
     if (reason === null) return; // cancelled
 
-    const res = await fetch(`/api/certificates/${certificateId}/revoke`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ reason }),
-    });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      setError(body.error ?? "Failed to revoke.");
-      return;
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/certificates/${certificateId}/revoke`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ reason }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setError(body.error ?? "Failed to revoke.");
+        return;
+      }
+      startTransition(() => router.refresh());
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setBusy(false);
     }
-    startTransition(() => router.refresh());
   }
 
   return (
     <div className="flex flex-col items-end gap-1">
-      <Button type="button" variant="outline" disabled={pending} onClick={revoke}>
-        {pending ? "Revoking…" : "Revoke"}
+      <Button
+        type="button"
+        variant="outline"
+        disabled={busy || pending}
+        onClick={revoke}
+      >
+        {busy || pending ? "Revoking…" : "Revoke"}
       </Button>
       {error ? (
         <p role="alert" className="text-xs text-danger">

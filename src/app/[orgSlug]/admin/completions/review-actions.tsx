@@ -13,19 +13,29 @@ import { Button } from "@/components/ui/button";
 export function ReviewActions({ completionId }: { completionId: string }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const disabled = busy || pending;
 
   async function act(action: "confirm" | "reject") {
+    if (disabled) return;
     setError(null);
-    const res = await fetch(`/api/completions/${completionId}/${action}`, {
-      method: "POST",
-    });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      setError(body.error ?? `Failed to ${action}.`);
-      return;
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/completions/${completionId}/${action}`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setError(body.error ?? `Failed to ${action}.`);
+        return;
+      }
+      startTransition(() => router.refresh());
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setBusy(false);
     }
-    startTransition(() => router.refresh());
   }
 
   return (
@@ -34,13 +44,13 @@ export function ReviewActions({ completionId }: { completionId: string }) {
         <Button
           type="button"
           variant="outline"
-          disabled={pending}
+          disabled={disabled}
           onClick={() => act("reject")}
         >
           Reject
         </Button>
-        <Button type="button" disabled={pending} onClick={() => act("confirm")}>
-          {pending ? "Working…" : "Confirm"}
+        <Button type="button" disabled={disabled} onClick={() => act("confirm")}>
+          {disabled ? "Working…" : "Confirm"}
         </Button>
       </div>
       {error ? (

@@ -25,8 +25,9 @@ export default async function CompletionsPage({
   const orgId = await resolveOrgIdBySlug(supabase, orgSlug);
 
   let rows: ReviewRow[] = [];
+  let loadError = false;
   if (orgId) {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("course_completions")
       .select(
         "id, lessons_completed_at, courses(title), profiles!course_completions_user_id_fkey(full_name, email)",
@@ -34,7 +35,8 @@ export default async function CompletionsPage({
       .eq("org_id", orgId)
       .eq("status", "pending_review")
       .order("lessons_completed_at", { ascending: true });
-    rows = (data as ReviewRow[] | null) ?? [];
+    if (error) loadError = true;
+    else rows = (data as ReviewRow[] | null) ?? [];
   }
 
   return (
@@ -49,7 +51,14 @@ export default async function CompletionsPage({
         </p>
       </div>
 
-      {rows.length > 0 ? (
+      {loadError ? (
+        <p
+          role="alert"
+          className="rounded-md bg-danger-subtle px-3 py-2 text-sm text-danger"
+        >
+          Couldn&apos;t load completions. Please refresh to try again.
+        </p>
+      ) : rows.length > 0 ? (
         <ul className="divide-y divide-border rounded-lg border border-border bg-card">
           {rows.map((row) => {
             const name =

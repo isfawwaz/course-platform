@@ -29,15 +29,17 @@ export default async function AdminCertificatesPage({
   const orgId = await resolveOrgIdBySlug(supabase, orgSlug);
 
   let rows: CertRow[] = [];
+  let loadError = false;
   if (orgId) {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("certificates")
       .select(
         "id, code, student_name_snapshot, course_title_snapshot, issued_at, revoked",
       )
       .eq("org_id", orgId)
       .order("issued_at", { ascending: false });
-    rows = data ?? [];
+    if (error) loadError = true;
+    else rows = data ?? [];
   }
 
   return (
@@ -50,7 +52,14 @@ export default async function AdminCertificatesPage({
         </p>
       </div>
 
-      {rows.length > 0 ? (
+      {loadError ? (
+        <p
+          role="alert"
+          className="rounded-md bg-danger-subtle px-3 py-2 text-sm text-danger"
+        >
+          Couldn&apos;t load certificates. Please refresh to try again.
+        </p>
+      ) : rows.length > 0 ? (
         <ul className="divide-y divide-border rounded-lg border border-border bg-card">
           {rows.map((cert) => {
             const issued = new Intl.DateTimeFormat("en-GB", {
