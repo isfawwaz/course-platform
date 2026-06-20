@@ -12,6 +12,18 @@ export const TEST_DB_URL =
   "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
 
 export async function connect(): Promise<Client> {
+  // This connection runs privileged, destructive helpers (ensureSupabaseGrants,
+  // fixture teardown) as superuser. Refuse to touch a non-local DB unless explicitly
+  // opted in, so a stray TEST_DATABASE_URL can never broaden grants or delete real data.
+  const host = new URL(TEST_DB_URL).hostname;
+  if (
+    !["127.0.0.1", "localhost", "::1"].includes(host) &&
+    process.env.ALLOW_NON_LOCAL_TEST_DB !== "true"
+  ) {
+    throw new Error(
+      `Refusing to run privileged test DB helpers against non-local host: ${host}`,
+    );
+  }
   const client = new Client({ connectionString: TEST_DB_URL });
   await client.connect();
   return client;
@@ -77,6 +89,8 @@ export async function ensureSupabaseGrants(client: Client): Promise<void> {
   `);
 }
 
+const IDENT = /^[a-z_][a-z0-9_]*$/i;
+
 /** Count rows a probe can see — the core isolation primitive. */
 export async function visibleCount(
   q: QueryFn,
@@ -84,6 +98,12 @@ export async function visibleCount(
   whereCol: string,
   value: string,
 ): Promise<number> {
+  // `table`/`whereCol` are interpolated, not parameterized (identifiers can't be
+  // bound). Whitelist them so this exported helper can't be reused for injection.
+  const parts = table.split(".");
+  if (parts.length !== 2 || !parts.every((p) => IDENT.test(p)) || !IDENT.test(whereCol)) {
+    throw new Error(`Unsafe identifier in visibleCount: ${table}.${whereCol}`);
+  }
   const { rows } = await q<{ n: string }>(
     `select count(*)::text as n from ${table} where ${whereCol} = $1`,
     [value],
