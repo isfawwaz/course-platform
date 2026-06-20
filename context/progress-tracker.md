@@ -81,9 +81,12 @@ real content builder UI; RLS isolation CI test.
 
 ### Phase 1 / 2
 - [x] **1.F Completion → certificate + public verify** — built on `feat/certificates`, build/lint/tsc
-  green. Migration `0010` applied live + types regenerated. Code-level done; full live issuance smoke
-  (confirm → worker renders PDF → download → verify) is a next-session test (needs worker running +
-  service key + Storage).
+  green. Migration `0010` applied live + types regenerated. PR #3 review-complete (all 12 CodeRabbit
+  findings addressed). **Live issuance smoke PASSED (2026-06-20):** confirmed completion → worker rendered
+  PDF (7117 B) → Supabase Storage `certificates` bucket → `pdf_key` stamped → service-signed download
+  returned a valid `%PDF-` → `public.verify_certificate` RPC + public `/verify/<code>` page showed
+  "Certificate verified" (cert `CP-FF8E-BCG1`, course "Nail Art Basics", isfawwaz). not-found + malformed
+  (`%`→HTTP 400, no 500) cases also verified.
   - [x] Risk-first spike: `@react-pdf/renderer` + `qrcode` render a valid PDF under the bun worker.
   - [x] Crockford code gen (`CP-XXXX-XXXX`) + look-alike-tolerant normalizer (`src/lib/certificates/code.ts`).
   - [x] Confirm/reject handlers (`/api/completions/:id/{confirm,reject}`) — staff re-checked, RLS client;
