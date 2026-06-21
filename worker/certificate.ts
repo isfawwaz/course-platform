@@ -16,6 +16,8 @@ import {
   CERTIFICATES_BUCKET,
   certificatePdfKey,
 } from "../src/lib/certificates/keys";
+import { sendEmail } from "../src/lib/email/client";
+import { certificateReadyEmail } from "../src/lib/email/templates/certificate-ready";
 import type { CertificateJob } from "../src/lib/queue/boss";
 
 import { CertificateDocument } from "./certificate-template";
@@ -61,7 +63,7 @@ export async function processCertificate(job: CertificateJob): Promise<void> {
   const { data: cert, error } = await supabase
     .from("certificates")
     .select(
-      "id, org_id, code, student_name_snapshot, course_title_snapshot, org_name_snapshot, issued_at",
+      "id, org_id, user_id, code, student_name_snapshot, course_title_snapshot, org_name_snapshot, issued_at",
     )
     .eq("id", certificateId)
     .maybeSingle();
@@ -110,10 +112,42 @@ export async function processCertificate(job: CertificateJob): Promise<void> {
     .eq("id", cert.id);
   if (updateError) throw new Error(`set pdf_key: ${updateError.message}`);
 
-  // TODO(email): notify the student their certificate is ready (RFC-003 §9). Provider TBD
-  // (Resend vs Postmark) — stubbed until chosen; issuance never blocks on email.
-  console.log(
-    `[certificate] ${certificateId} ready → ${key} (${pdf.length} bytes); ` +
-      `email to student stubbed`,
-  );
+  // Notify the student their certificate is ready (RFC-003 §9). Best-effort: issuance has
+  // already succeeded above, so a missing email or provider failure must never fail the job.
+  try {
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("email")
+      .eq("id", cert.user_id)
+      .maybeSingle();
+    if (profileError) {
+      throw new Error(`load profile email: ${profileError.message}`);
+    }
+    if (profile?.email) {
+      const sent = await sendEmail(
+        certificateReadyEmail({
+          to: profile.email,
+          studentName: cert.student_name_snapshot,
+          courseTitle: cert.course_title_snapshot,
+          orgName: cert.org_name_snapshot,
+          verifyUrl,
+          locale,
+        }),
+      );
+      console.log(
+        `[certificate] ${certificateId} ready → ${key} (${pdf.length} bytes); ` +
+          `email ${sent ? "sent" : "skipped"}`,
+      );
+    } else {
+      console.warn(
+        `[certificate] ${certificateId} ready → ${key} (${pdf.length} bytes); ` +
+          `no student email on file — notification skipped`,
+      );
+    }
+  } catch (e) {
+    console.error(
+      `[certificate] ${certificateId} ready → ${key}; certificate-ready email failed:`,
+      e instanceof Error ? e.message : e,
+    );
+  }
 }
