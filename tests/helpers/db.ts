@@ -66,29 +66,6 @@ export async function asUser<T>(
   }
 }
 
-/**
- * Reproduce Supabase's platform grant posture on the local stack.
- *
- * In production, `anon`/`authenticated`/`service_role` hold BROAD table privileges
- * (SELECT/INSERT/UPDATE/DELETE) and RLS is the only gate — the standard Supabase
- * model. But the local PG17 stack's default privileges for `postgres`-owned tables
- * (which is how our migrations create them) withhold those privileges, so reads
- * would fail at the grant layer before RLS is ever evaluated — making the isolation
- * test meaningless. This grants the same privileges the live project has, so the
- * test exercises RLS, not table grants. Idempotent; runs as superuser.
- */
-export async function ensureSupabaseGrants(client: Client): Promise<void> {
-  await client.query(`
-    grant usage on schema public to anon, authenticated, service_role;
-    grant all on all tables    in schema public to anon, authenticated, service_role;
-    grant all on all sequences in schema public to anon, authenticated, service_role;
-    alter default privileges for role postgres in schema public
-      grant all on tables to anon, authenticated, service_role;
-    alter default privileges for role postgres in schema public
-      grant all on sequences to anon, authenticated, service_role;
-  `);
-}
-
 const IDENT = /^[a-z_][a-z0-9_]*$/i;
 
 /** Count rows a probe can see — the core isolation primitive. */

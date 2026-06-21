@@ -7,7 +7,10 @@
   0.D course builder + 0.E pipeline + 0.F playback/progress, proven end-to-end on a real .mov
   (upload → transcode → token playback → progress → completion `pending_review`). 0.A–0.C merged in PR #1.
 - **Next:** merge PR #2, then Phase 1 — Fly.io worker + full ladder/captions (1.B), roster/grant UI (1.C),
-  assessments (1.E), completion → certificate + public verify (1.F). Loose ends: RLS isolation test, 0.C Tier-2 invite smoke.
+  assessments (1.E), completion → certificate + public verify (1.F).
+  Loose ends CLEARED (2026-06-21): RLS isolation CI test (PR #4, merged); email provider = Resend +
+  cert-ready email (PR #5, merged); 0.C Tier-2 invite smoke (app code verified — pending dashboard
+  invite-template fix, see Step 9). Open follow-up: API-role grants migration (make schema self-sufficient).
 
 ### Spike gotchas (learned)
 - pg-boss needs the **Session pooler** (`aws-1-ap-southeast-1.pooler.supabase.com:5432`,
@@ -58,9 +61,16 @@
     per-org rose theming (`#E11D48` primary) → staff-gated /admin with Refine mounted. Bootstrap run via
     MCP (isfawwaz@gmail.com = platform admin + nail-art-academy owner). Fixed: signup confirm email now
     targets `/auth/callback` (PKCE code) to match Supabase's default template — earlier `/auth/confirm`
-    caused "sign-in link incomplete". **Tier 2 (invite send + accept) pending** — needs service-role key
-    in .env.local + invite email template → /auth/confirm?type=invite. Magic-link round-trip not yet
-    smoke-tested (uses /auth/callback, default template).
+    caused "sign-in link incomplete". **Tier 2 (invite send + accept) SMOKED 2026-06-21** end-to-end
+    against live: invite email delivered via Supabase Auth SMTP; with the correct link shape
+    (`/auth/confirm?token_hash=…&type=invite&next=/accept-invite`), verifyOtp → /accept-invite →
+    `activateInvitedMemberships` flipped the membership to `active` (verified in DB). App code is
+    correct. **ACTION ITEM (dashboard, not code):** the "Invite user" email template is still the
+    Supabase default — its link hits `/auth/v1/verify?…&redirect_to=…` which returns the result in the
+    URL *fragment*, so our server-side `/auth/confirm` (reads query params) bounces to
+    `/login?error=missing_token`. Fix in Dashboard → Auth → Email Templates → "Invite user": replace
+    `{{ .ConfirmationURL }}` with `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite&next=/accept-invite`
+    (same fix already applied to signup). Magic-link round-trip still not smoke-tested.
 - [x] 0.D Minimal content CRUD — server-action builder (`src/lib/content/actions.ts`):
   create course (admin home) + add module/lesson with ready-video attach + required toggle
   (`/[orgSlug]/admin/courses/[courseId]`). Verified live (added Lesson #1 w/ video). Full
