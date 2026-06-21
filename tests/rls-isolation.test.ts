@@ -5,13 +5,7 @@
 // Requires the local Supabase stack: `bun run db:test:up` (see package.json / README).
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import type { Client } from "pg";
-import {
-  asUser,
-  connect,
-  ensureSupabaseGrants,
-  visibleCount,
-  type QueryFn,
-} from "./helpers/db";
+import { asUser, connect, visibleCount, type QueryFn } from "./helpers/db";
 import {
   seedTwoOrgs,
   teardownTwoOrgs,
@@ -24,7 +18,6 @@ let f: TwoOrgs;
 
 beforeAll(async () => {
   client = await connect();
-  await ensureSupabaseGrants(client);
   f = await seedTwoOrgs(client);
 });
 
